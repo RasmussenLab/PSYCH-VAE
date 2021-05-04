@@ -15,7 +15,6 @@ import seaborn as sns
 from sklearn.decomposition import PCA
 from collections import defaultdict
 
-matplotlib.use('agg')
 import matplotlib
 import matplotlib.pyplot as plt
 import random
@@ -199,15 +198,12 @@ def evaluate_model_nn(predictions, probs, test_labels, labels_name, f_name=None,
         
     return results
 
-#path = "/data/projects/IBP/rosa/VAE_V1/"
-path = "/data/projects/IBP/to_transfer_to_computerome2/VAE_rosa/"
-sys.path.append(path + "people/rosal/scripts/")
-del sys.modules["intVAE_v1_5"]
+path = "/"
+sys.path.append(path)
 import intVAE_v1_5
 from plots import embedding_plot_discrete, embedding_plot_float, plot_error
 from read_files import encode_binary, encode_cat, encode_con, remove_not_obs_cat, remove_not_obs_ordinal, read_cat, read_con, read_header
 
-path = "/data/projects/IBP/to_transfer_to_computerome2/VAE_rosa/data/"
 ## load pheno data categorical
 F_pheno_cat, F_pheno_input = read_cat(path + "/data_encoded/input/pheno_F_int.npy")
 F_pheno_h_cat = read_header(path + "/data_encoded/phenotypes_age/pheno_F_headers_age.txt")
@@ -236,13 +232,6 @@ F_pheno =  F_pheno[:,np.where(np.isin(F_pheno_h,tmp_h))].reshape(F_pheno.shape[0
 con_all_raw = con_all_raw[:,np.where(np.isin(F_pheno_h,tmp_h))].reshape(con_all_raw.shape[0],len(tmp_h))
 F_pheno_h = F_pheno_h[np.where(np.isin(F_pheno_h,tmp_h))]
 
-# remove collacted measurements
-h_to_remove = ['age_F1000', 'age_F2000', 'age_F2101', 'age_F3000', 'age_F3001', 'age_F3101', 'age_F4100', 'age_F4300', 'age_F5100', 'age_F5200', 'age_F6100', 'age_F7000', 'age_F8100', 'age_F8101', 'age_F8300', 'age_F9100', 'age_F9200','age_F9297']
-tmp_h = [i for i in F_pheno_h if i not in h_to_remove]
-F_pheno =  F_pheno[:,np.where(np.isin(F_pheno_h,tmp_h))].reshape(F_pheno.shape[0],len(tmp_h))
-con_all_raw = con_all_raw[:,np.where(np.isin(F_pheno_h,tmp_h))].reshape(con_all_raw.shape[0],len(tmp_h))
-F_pheno_h = F_pheno_h[np.where(np.isin(F_pheno_h,tmp_h))]
-
 ## load in continuous pheno data
 severity_pheno = read_con(path + "/data_encoded/input/sev_con.npy")
 severity_pheno = severity_pheno[skitzo_class != 0]
@@ -253,22 +242,16 @@ tmp_raw = read_con(path + "/data_encoded/input/sev_con.npy")
 con_all_raw = np.concatenate((con_all_raw, tmp_raw[:,mask]), axis=1)
 
 mbr = read_con(path + "/data_encoded/input/mbr_con_age.npy")
-mbr[:,4]  = mbr[:,4] / 1000
 mbr = mbr[skitzo_class != 0]
 mbr, mask = encode_con(mbr, 0.01)
 mbr_h = read_header(path + "/data_encoded/phenotypes_age/mbr_con_headers_age.txt", mask)
-mbr_h = np.delete(mbr_h, 3)
-mbr = np.delete(mbr, 3, axis=1)
 
 tmp_raw = read_con(path + "/data_encoded/input/mbr_con_age.npy")
-tmp_raw[:,4]  = tmp_raw[:,4] / 1000
 tmp_raw = tmp_raw[:,mask]
-tmp_raw = np.delete(tmp_raw, 3, axis=1)
 con_all_raw = np.concatenate((con_all_raw, tmp_raw), axis=1)
 
 LPR = read_con(path + "/data_encoded/input/other_LPR_con.npy")
 LPR = LPR[skitzo_class != 0]
-#LPR, LPR_input, mask = encode_binary(LPR, 0.01)
 LPR, mask = encode_con(LPR, 0.01)
 LPR_h = read_header(path + "/data_encoded/phenotypes_age/other_LPR_headers_con.txt", mask)
 LPR = np.concatenate((LPR, other_LPR), axis=1)
@@ -348,189 +331,17 @@ labels = np.load(path + "/clustering/" + analysis_type + "/labels_kmeans_" + ver
 y = label_binarize(labels, classes=np.unique(labels))
 n_classes = y.shape[1]
 
-#labels_name = ["C-SCZ4", "C-SCZ1", "C-SCZ2", "C-SCZ6", "C-SCZ5", "C-SCZ7", "C-SCZ3"]
 labels_name = ["C-SCZ3", "C-SCZ5", "C-SCZ2", "C-SCZ4", "C-SCZ1", "C-SCZ6", "C-SCZ7"]
 old_labels = list(np.unique(labels))
 labels_names = []
 for l in labels:
    labels_names.append(labels_name[old_labels.index(l)])
 
-# 30% examples in test data
-RSEED = 42
-train, test, train_labels, test_labels = train_test_split(data_df, labels.astype(int), 
-                                                          stratify = labels.astype(int),
-                                                          test_size = 0.2, 
-                                                          random_state = RSEED)
-
-np.save(path + "/prediction/" + analysis_type + "/nn_train_" + version + "_" + analysis_type + ".npy", train)
-np.save(path + "/prediction/" + analysis_type + "/nn_train_label_" + version + "_" + analysis_type + ".npy", train_labels)
-np.save(path + "/prediction/" + analysis_type + "/nn_test_" + version + "_" + analysis_type + ".npy", test)
-np.save(path + "/prediction/" + analysis_type + "/nn_test_label_" + version + "_" + analysis_type + ".npy", test_labels)
-
-# train = np.load(path + "/prediction/" + analysis_type + "/nn_train_" + version + "_" + analysis_type + ".npy")
-# train_labels = np.load(path + "/prediction/" + analysis_type + "/nn_train_label_" + version + "_" + analysis_type + ".npy")
-# test = np.load(path + "/prediction/" + analysis_type + "/nn_test_" + version + "_" + analysis_type + ".npy")
-# test_labels = np.load(path + "/prediction/" + analysis_type + "/nn_test_label_" + version + "_" + analysis_type + ".npy")
-# train = pd.DataFrame(train, columns = np.concatenate((con_names,cat_names)))
-# test = pd.DataFrame(test, columns = np.concatenate((con_names,cat_names)))
-
-EPOCHS = 300
-BATCH_SIZE = 10
-LEARNING_RATE = 0.001
-NUM_FEATURES = len(data_df.columns)
-NUM_CLASSES = len(np.unique(labels))
-
-train_dataset = ClassifierDataset(torch.from_numpy(np.array(train)).float(), torch.from_numpy(train_labels).long())
-val_dataset = ClassifierDataset(torch.from_numpy(np.array(test)).float(), torch.from_numpy(test_labels).long())
-
-# weighted sampler
-target_list = []
-for _, t in train_dataset:
-    target_list.append(t)
-
-target_list = torch.tensor(target_list)
-target_list = target_list[torch.randperm(len(target_list))]
-class_count = np.bincount(labels.astype(int))
-class_weights = 1./torch.tensor(class_count, dtype=torch.float) 
-class_weights_all = class_weights[target_list]
-weighted_sampler = WeightedRandomSampler(
-    weights=class_weights_all,
-    num_samples=len(class_weights_all),
-    replacement=True
-)
-
-train_loader = DataLoader(dataset=train_dataset,
-                          batch_size=BATCH_SIZE,
-                          sampler=weighted_sampler
-)
-val_loader = DataLoader(dataset=val_dataset, batch_size=1)
-#test_loader = DataLoader(dataset=test_dataset, batch_size=1)
-
-cuda = False
-device = torch.device("cuda" if cuda == True else "cpu")
-
-model = MulticlassClassification(num_feature = NUM_FEATURES, num_class=NUM_CLASSES, num_hidden1= 256, num_hidden2 = 128)
-model.to(device)
-
-criterion = nn.CrossEntropyLoss(weight=class_weights.to(device))
-optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
-
-accuracy_stats = {
-    'train': [],
-    "val": []
-}
-loss_stats = {
-    'train': [],
-    "val": []
-}
-
-for e in range(1, EPOCHS+1):
-    
-    # TRAINING
-    train_epoch_loss = 0
-    train_epoch_acc = 0
-    model.train()
-    for X_train_batch, y_train_batch in train_loader:
-        X_train_batch, y_train_batch = X_train_batch.to(device), y_train_batch.to(device)
-        optimizer.zero_grad()
-        
-        y_train_pred = model(X_train_batch)
-        
-        train_loss = criterion(y_train_pred, y_train_batch)
-        train_acc, softmax_pred, correct_pred = multi_acc(y_train_pred, y_train_batch)
-        
-        train_loss.backward()
-        optimizer.step()
-        
-        train_epoch_loss += train_loss.item()
-        train_epoch_acc += train_acc.item()
-    
-    
-    # VALIDATION    
-    with torch.no_grad():
-        
-        val_epoch_loss = 0
-        val_epoch_acc = 0
-        
-        model.eval()
-        for X_val_batch, y_val_batch in val_loader:
-            X_val_batch, y_val_batch = X_val_batch.to(device), y_val_batch.to(device)
-            
-            y_val_pred = model(X_val_batch)
-                        
-            val_loss = criterion(y_val_pred, y_val_batch)
-            val_acc, softmax_pred, correct_pred = multi_acc(y_val_pred, y_val_batch)
-            
-            val_epoch_loss += val_loss.item()
-            val_epoch_acc += val_acc.item()
-    
-    loss_stats['train'].append(train_epoch_loss/len(train_loader))
-    loss_stats['val'].append(val_epoch_loss/len(val_loader))
-    accuracy_stats['train'].append(train_epoch_acc/len(train_loader))
-    accuracy_stats['val'].append(val_epoch_acc/len(val_loader))
-    
-    print('Epoch ' + str(e) + ' | Train Loss: ' + str(train_epoch_loss/len(train_loader)) + ' | Val Loss: ' + str(val_epoch_loss/len(val_loader)) + ' | Train Acc: ' + str(train_epoch_acc/len(train_loader)) + ' | Val Acc: ' + str(val_epoch_acc/len(val_loader)))
-
-# Best model
-filename = path + "/prediction/" + analysis_type + "/nn_model_" + version + "_" + analysis_type + "pt"
-torch.save(model, filename)
-np.save(path + "/prediction/" + analysis_type + "/nn_loss_" + version + "_" + analysis_type + ".npy", loss_stats)
-np.save(path + "/prediction/" + analysis_type + "/nn_acc_" + version + "_" + analysis_type + ".npy", accuracy_stats)
-# model= torch.load(filename)
-# model.eval()
-
-with torch.no_grad():
-        val_epoch_loss = 0
-        val_epoch_acc = 0
-        predictions = []
-        probs = []
-        
-        model.eval()
-        for X_val_batch, y_val_batch in val_loader:
-            X_val_batch, y_val_batch = X_val_batch.to(device), y_val_batch.to(device)
-            
-            y_val_pred = model(X_val_batch)
-                        
-            val_loss = criterion(y_val_pred, y_val_batch)
-            val_acc, softmax_pred, correct_pred = multi_acc(y_val_pred, y_val_batch)
-            
-            val_epoch_loss += val_loss.item()
-            val_epoch_acc += val_acc.item()
-            predictions.append(int(correct_pred))
-            probs.append(np.array(softmax_pred).ravel())
-
-val_loss = val_epoch_loss / len(val_loader)
-val_acc = val_epoch_acc / len(val_loader)
-
-colors = cycle(['lightskyblue','royalblue', 'darkblue', 'salmon', 'red', 'crimson', 'maroon'])
-f_name = path + "/prediction/" + analysis_type + "/nn_roc_" + version  + "_" + analysis_type
-test_eval = evaluate_model_nn(np.array(predictions), np.array(probs), test_labels, f_name, colors, labels_name)
-mcc_all = matthews_corrcoef(test_labels, np.array(predictions))
-
-fi = pd.DataFrame({'feature': list(train.columns),
-                   'importance': best_model.feature_importances_}).\
-                    sort_values('importance', ascending = False)
-
-feature_imp = fi[fi['importance'] > 0]
-f_name = path + "/prediction/" + analysis_type + "/feature_importance_" + version  + "_" + analysis_type
-
-sns.set(font_scale=1.5)
-fig = plt.figure(figsize=(14,10))
-g = sns.barplot(data=feature_imp.iloc[0:25], y='importance', x='feature')
-# Add labels to your graph
-plt.ylabel('Feature Importance Score')
-plt.xlabel('Features')
-g.set_xticklabels(g.xaxis.get_majorticklabels(), rotation=90)
-fig.subplots_adjust(bottom=0.4)
-plt.savefig(f_name + ".pdf", format = 'pdf', dpi = 800)
-
 ##### Remove data after diagnosis ####
 
 first_age_scz = con_all_raw[:,list(F_pheno_h).index("age_F2001")]
 first_age_mdd1 = con_all_raw[:,list(F_pheno_h).index("age_F3200")]
 first_age_mdd2 = con_all_raw[:,list(F_pheno_h).index("age_F3300")]
-#stacked_arrays = np.stack((first_age_mdd1,first_age_mdd2))
-#first_age_mdd =  np.min(stacked_arrays, axis=0)
 first_age = []
 for i in range(len(first_age_scz)):
     if first_age_scz[i] == 0:
@@ -569,25 +380,6 @@ train_filtered, val_filtered, train_labels_filtered, val_labels_filtered = train
                                                           test_size = 0.1, 
                                                           random_state = RSEED)
 
-np.save(path + "/prediction/" + analysis_type + "/nn_train_filtered_" + version + "_" + analysis_type + ".npy", train_filtered)
-np.save(path + "/prediction/" + analysis_type + "/nn_train_label_filtered_" + version + "_" + analysis_type + ".npy", train_labels_filtered)
-np.save(path + "/prediction/" + analysis_type + "/nn_test_filtered_" + version + "_" + analysis_type + ".npy", test_filtered)
-np.save(path + "/prediction/" + analysis_type + "/nn_test_label_filtered_" + version + "_" + analysis_type + ".npy", test_labels_filtered)
-np.save(path + "/prediction/" + analysis_type + "/nn_val_filtered_" + version + "_" + analysis_type + ".npy", val_filtered)
-np.save(path + "/prediction/" + analysis_type + "/nn_val_label_filtered_" + version + "_" + analysis_type + ".npy", val_labels_filtered)
-
-
-path = '/faststorage/jail/project/gentofte_projects/VAE_rosa/data/'
-# train_filtered = np.load(path + "/prediction/" + analysis_type + "/nn_train_filtered_" + version + "_" + analysis_type + ".npy")
-# train_labels_filtered = np.load(path + "/prediction/" + analysis_type + "/nn_train_label_filtered_" + version + "_" + analysis_type + ".npy")
-# test_filtered = np.load(path + "/prediction/" + analysis_type + "/nn_test_filtered_" + version + "_" + analysis_type + ".npy")
-# test_labels_filtered = np.load(path + "/prediction/" + analysis_type + "/nn_test_label_filtered_" + version + "_" + analysis_type + ".npy")
-# val_filtered = np.load(path + "/prediction/" + analysis_type + "/nn_val_filtered_" + version + "_" + analysis_type + ".npy")
-# val_labels_filtered = np.load(path + "/prediction/" + analysis_type + "/nn_val_label_filtered_" + version + "_" + analysis_type + ".npy")
-# train_filtered = pd.DataFrame(train_filtered, columns = data_filtered_h)
-# test_filtered = pd.DataFrame(test_filtered, columns = data_filtered_h)
-# val_filtered = pd.DataFrame(val_filtered, columns = data_filtered_h)
-
 EPOCHS = 200
 NUM_FEATURES = len(data_df_filtered.columns)
 NUM_CLASSES = len(np.unique(labels))
@@ -618,8 +410,6 @@ cuda = False
 device = torch.device("cuda" if cuda == True else "cpu")
 criterion = nn.CrossEntropyLoss(weight=class_weights.to(device))
 
-#BATCH_SIZE = 20
-#LEARNING_RATE = 0.001
 val_loss_min = 1000
 best_hyp = []
 
@@ -695,16 +485,6 @@ for BATCH_SIZE in batch_sizes:
                 
                 print('Epoch ' + str(e) + ' | Train Loss: ' + str(train_epoch_loss/len(train_loader_filtered)) + ' | Val Loss: ' + str(val_epoch_loss/len(val_loader_filtered)) + ' | Train Acc: ' + str(train_epoch_acc/len(train_loader_filtered)) + ' | Val Acc: ' + str(val_epoch_acc/len(val_loader_filtered)))
 
-# Best model
-filename = path + "/prediction/" + analysis_type + "/nn_model_filtered_" + version + "_" + analysis_type + "pt"
-torch.save(best_model_filtered, filename)
-np.save(path + "/prediction/" + analysis_type + "/nn_loss_filtered_" + version + "_" + analysis_type + ".npy", loss_stats_filtered)
-np.save(path + "/prediction/" + analysis_type + "/nn_acc_filtered_" + version + "_" + analysis_type + ".npy", accuracy_stats_filtered)
-np.save(path + "/prediction/" + analysis_type + "/nn_best_hyp_" + version + "_" + analysis_type + ".npy", best_hyp)
-# best_model_filtered = torch.load(filename)
-# best_model_filtered.eval()
-# best_hyp = np.load(path + "/prediction/" + analysis_type + "/nn_best_hyp_" + version + "_" + analysis_type + ".npy", allow_pickle=True)
-
 with torch.no_grad():
         test_epoch_loss = 0
         test_epoch_acc = 0
@@ -771,32 +551,18 @@ for feature_index in range(NUM_FEATURES):
     
     test_mcc = matthews_corrcoef(test_labels_filtered, np.array(predictions_filtered_shap))
     mcc_diffs.append(np.abs(mcc_all_filtered-test_mcc))
-    #mcc_diffs.append(mcc_all_filtered-test_mcc)
     test_eval_filtered_shap = evaluate_model_nn(np.array(predictions_filtered), np.array(probs_filtered), test_labels_filtered, labels_name)
     auc_diffs.append(np.abs(test_eval_filtered['roc'] - test_eval_filtered_shap['roc']))
     
     for c in np.unique(labels):
         c = int(c)
         cluster_diffs_auc[c].append(np.abs(test_eval_filtered[c] - test_eval_filtered_shap[c]))
-        #cluster_diffs_mcc[c].append(np.abs(mcc_all[c] - mcc_all_shap[c]))
 
 fi_filtered = pd.DataFrame({'feature': list(train_filtered.columns),
                    'importance': acc_diffs}).\
                     sort_values('importance', ascending = False)
 
-np.save(path + "/prediction/" + analysis_type + "/nn_feature_importance_filtered_" + version  + "_" + analysis_type + ".npy",fi_filtered)
-
-fi_filtered = pd.DataFrame({'feature': list(train_filtered.columns),
-                   'importance': mcc_diffs}).\
-                    sort_values('importance', ascending = False)
-
-np.save(path + "/prediction/" + analysis_type + "/nn_feature_importance_filtered_mcc_" + version  + "_" + analysis_type + ".npy",fi_filtered)
-
-#fi_filtered = np.load(path + "/prediction/" + analysis_type + "/nn_feature_importance_filtered_" + version  + "_" + analysis_type + ".npy", allow_pickle=True)
-#fi_filtered = pd.DataFrame(fi_filtered, columns = ['feature', 'importance'])
-
 # Fraction explained
-# all with accuracy change over 1
 feature_imp_filtered = fi_filtered[fi_filtered['importance'] > 0]
 
 other_h = [i for i in filtered_h if i in LPR_h]
@@ -806,7 +572,6 @@ data_names = [mental_h, other_h, np.concatenate((mbr_h,MBR_pheno_h)), family_LPR
 title_data = ['Psychiatric disorders', 'Other medical conditions', 'MBR', 'Family diagnoses', 'Genomics', 'HLA data']
 
 colors_u = ['#EC1C1C','#E06161', '#FF9B9B', '#84C3F7', '#4387BF', '#2669A1']
-#colors_u = ['tomato', 'coral', 'lightblue', 'azure', 'navy']
 bar_colors = []
 data_names = [mental_h, other_h, np.concatenate((mbr_h,MBR_pheno_h)), family_LPR_h, geno_h, hla_pheno_h]
 for k in feature_imp_filtered.iloc[0:25]['feature']:
@@ -817,33 +582,9 @@ for k in feature_imp_filtered.iloc[0:25]['feature']:
             break
         j += 1
 
-all_distributions = []
 bar_colors_all = dict()
 for i,dn in enumerate(data_names):
-    tmp_h = [i for i in feature_imp_filtered['feature'] if i in (dn)]
-    #print(len(tmp_h) / feature_imp_filtered.shape[0]* 100)
-    tmp_df = feature_imp_filtered.iloc[np.where(np.isin(feature_imp_filtered['feature'],tmp_h))]
-    #print(tmp_df.loc[:,'importance'].sum())
-    #print(tmp_df.loc[:,'importance'].mean())
-    all_distributions.append([len(tmp_h) / feature_imp_filtered.shape[0]* 100, tmp_df.loc[:,'importance'].sum(), tmp_df.loc[:,'importance'].mean()])
     bar_colors_all[title_data[i]] = colors_u[i]
-
-f_name = path + "/prediction/" + analysis_type + "/nn_feature_importance_filtered_all_" + version  + "_" + analysis_type + '.txt'
-imp = pd.DataFrame(np.array(all_distributions), index = title_data, columns = ['Percent of all', 'Sum of importance', 'Average importance'])
-imp.to_csv(f_name)
-
-tmp_pd = pd.DataFrame({'feature': list(imp.index),
-                   'importance': imp['Average importance']}).\
-                    sort_values('importance', ascending = False)
-f_name = path + "/prediction/" + analysis_type + "/nn_feature_importance_filtered_all_" + version  + "_" + analysis_type + '.pdf'
-fig = plt.figure(figsize=(14,10))
-g = sns.barplot(data=tmp_pd,  y='importance', x='feature',  palette=bar_colors_all)
-# Add labels to your graph
-plt.ylabel('Average feature importance')
-plt.xlabel('Dataset')
-g.set_xticklabels(g.xaxis.get_majorticklabels(), rotation=90)
-fig.subplots_adjust(bottom=0.4)
-plt.savefig(f_name, format = 'pdf', dpi = 800)
 
 feature_imp_filtered = fi_filtered[fi_filtered['importance'] > 0]
 f_name = path + "/prediction/" + analysis_type + "/nn_feature_importance_filtered_" + version  + "_" + analysis_type
@@ -880,64 +621,8 @@ g.set_yticklabels(g.yaxis.get_majorticklabels(), rotation=0)
 fig.subplots_adjust(bottom=0.2)
 plt.savefig(f_name + ".pdf", format = 'pdf', dpi = 800)
 
-### Distances in "new data"
-between_cl_dist_raw = defaultdict(dict)
-within_dists_raw = []
-for c_1 in np.unique(labels):
-   tmp_raw = data_filtered[labels == c_1,:]
-    
-   tmp_median_1_raw = np.mean(tmp_raw, axis = 0)
-   
-   #within_dists_raw.append(np.mean(euclideanR(tmp_raw,tmp_median_1_raw)))
-   for c_2 in np.unique(labels):
-      tmp_cos_2_raw = data_filtered[labels == c_2, :]
-      tmp_median_2_raw = np.mean(tmp_cos_2_raw, axis = 0)
-      
-      dist_tmp_raw = distance.correlation(tmp_median_1_raw, tmp_median_2_raw)
-      between_cl_dist_raw[c_1][c_2] = dist_tmp_raw
-
-corr = pd.DataFrame(between_cl_dist_raw)
-corr.index = labels_name
-corr.columns = labels_name
-corr = corr.sort_index()
-corr = corr.T.sort_index()
-cmap = sns.diverging_palette(220, 10, sep=5, as_cmap=True)
-sns.set(font_scale=1.4)
-f, ax = plt.subplots()
-g = sns.clustermap(corr, cmap=cmap, center=0, xticklabels = True,
-                   yticklabels = True,
-                   linewidths=0, row_cluster=True, col_cluster=True, metric='correlation', figsize = (10, 10))
-bottom, top = g.ax_heatmap.get_ylim()
-#g.ax_heatmap.set_ylim(bottom + 0.5, top - 0.5)
-g.ax_heatmap.set_yticklabels(g.ax_heatmap.yaxis.get_majorticklabels(), rotation=0)
-g.ax_heatmap.set_xticklabels(g.ax_heatmap.xaxis.get_majorticklabels(), rotation=60)
-f.subplots_adjust(right=0.8, bottom=0.2)
-f.tight_layout()
-plt.savefig(path + analysis_type + "_filtered_cluster_heatmap_dists_raw_" + version + ".pdf", bbox_inches='tight', format = 'pdf', dpi = 800)
-
-corr = pd.DataFrame(between_cl_dist_raw)
-corr.index = labels_name
-corr.columns = labels_name
-corr = corr.sort_index()
-corr = corr.T.sort_index()
-cmap = sns.diverging_palette(220, 10, sep=1, as_cmap=True)
-sns.set(font_scale=1.4)
-f, ax = plt.subplots()
-g = sns.clustermap(corr, cmap=cmap, center=0, xticklabels = True,
-                   yticklabels = True,
-                   linewidths=0, row_cluster=False, col_cluster=False, metric='correlation', figsize = (10, 10), vmin=0, vmax=0.26)
-bottom, top = g.ax_heatmap.get_ylim()
-#g.ax_heatmap.set_ylim(bottom + 0.5, top - 0.5)
-g.ax_heatmap.set_yticklabels(g.ax_heatmap.yaxis.get_majorticklabels(), rotation=0)
-g.ax_heatmap.set_xticklabels(g.ax_heatmap.xaxis.get_majorticklabels(), rotation=60)
-f.subplots_adjust(right=0.8, bottom=0.2)
-f.tight_layout()
-plt.savefig(path + analysis_type + "_filtered_cluster_heatmap_dists_raw_same_scale_" + version + ".pdf", bbox_inches='tight', format = 'pdf', dpi = 800)
-
-
 #### Get dataset SHAP
 # Get SHAP values
-
 data_names = [mental_h, other_h, np.concatenate((mbr_h,MBR_pheno_h)), family_LPR_h, geno_h, hla_pheno_h]
 title_data = ['Psychiatric disorders', 'Other medical conditions', 'MBR', 'Family diagnoses', 'Genomics', 'HLA data']
 
@@ -989,10 +674,6 @@ fi_filtered_v2 = pd.DataFrame({'feature': title_data,
                    'importance': acc_diffs_v2}).\
                     sort_values('importance', ascending = False)
 
-np.save(path + "/prediction/" + analysis_type + "/nn_feature_importance_filtered_each_" + version  + "_" + analysis_type + ".npy",fi_filtered_v2)
-
-#fi_filtered_v2 = np.load(path + "/prediction/" + analysis_type + "/nn_feature_importance_filtered_each_" + version  + "_" + analysis_type + ".npy")
-
 f_name = path + "/prediction/" + analysis_type + "/nn_feature_importance_filtered_each_" + version  + "_" + analysis_type
 fig = plt.figure(figsize=(14,10))
 plt.style.use('seaborn-whitegrid')
@@ -1004,8 +685,3 @@ plt.xlabel('Dataset')
 g.set_xticklabels(g.xaxis.get_majorticklabels(), rotation=90)
 fig.subplots_adjust(bottom=0.4)
 plt.savefig(f_name + ".pdf", format = 'pdf', dpi = 800)
-
-fi_filtered_v2 = pd.DataFrame({'feature': title_data,
-                   'importance': mcc_diffs_v2}).\
-                    sort_values('importance', ascending = False)
-np.save(path + "/prediction/" + analysis_type + "/nn_feature_importance_filtered_each_mcc" + version  + "_" + analysis_type + ".npy",fi_filtered_v2)
