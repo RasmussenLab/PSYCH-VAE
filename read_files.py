@@ -77,30 +77,18 @@ def encode_con(raw_input, p = 0.01):
    # remove less than 1% observations
    mask_col = np.count_nonzero(tmp_matrix, 0) > (tmp_matrix.shape[0] * p)
    
-   #data_input = np.log2(matrix + 0.1)
-   #data_input = matrix
-   scaler = MinMaxScaler()
-   data_input = scaler.fit_transform(matrix)
-   #data_input = power_transform(matrix, method='yeo-johnson', standardize=True)
-   
-   # remove 0 variance
-   std = np.nanstd(data_input, axis=0)
+   std = np.nanstd(matrix, axis=0)
    mask_col &= std != 0
    
-   # scale around -3 to 3
-   #scaler = MinMaxScaler((-3,3)) 
-   #data_scaled = scaler.fit_transform(data_input)
-   
    # z-score normalize
-   #mean = np.nanmean(data_input, axis=0)
-   #std = np.nanstd(data_input, axis=0)
+   mean = np.nanmean(matrix, axis=0)
+   std = np.nanstd(matrix, axis=0)
    
-   #data_input -= mean
-   #data_input /= std
+   data_input = matrix
+   data_input -= mean
+   data_input /= std
    
-   #data_input[np.isnan(data_input)] = 0
-   mean = np.nanmean(data_input, axis = 0)
-   data_input = np.where(np.isnan(matrix), mean, data_input)
+   data_input[np.isnan(data_input)] = 0
    data_input = data_input[:,mask_col]
    
    return data_input, mask_col
@@ -275,45 +263,3 @@ def get_categories(sorted_data):
       sorted_data_cat[:,col] = tmp
       
    return sorted_data_cat, mask
-
-final_ids = list()
-file = path + "/data_encoded/included_all.txt"
-with open(file, "r") as r:
-  for line in r:
-     final_ids.append(line.rstrip())
-
-from datetime import datetime
-def years_between(d1, d2):
-    d1 = datetime.strptime(d1, "%d/%m/%Y")
-    d2 = datetime.strptime(d2, "%d/%m/%Y")
-    return abs((d2 - d1).days)/365
-
-# Get age
-age = {}
-file = '/faststorage/jail/project/Register/FromCrome/phenotype2016d.csv'
-with open(file, "r") as f:
-    header = f.readline().rstrip()
-    header = header.split(",")
-    for line in f: 
-      if len(line.rstrip()) == 0:
-         continue
-      tmp = line.rstrip().split(",")
-      
-      if tmp[1] == '':
-         print('isuse')
-         continue
-      
-      age[tmp[0]] = years_between(tmp[1],'01/01/2016')
-      
-
-ages_final = []
-
-for ids in final_ids:
-   if ids in age:
-      ages_final.append(age[ids])
-   else:
-      print('issue')
-      ages_final.append(np.nan)
-
-
-np.save('/faststorage/jail/project/gentofte_projects/prediction/included_patient_age.npy', np.array(ages_final))
